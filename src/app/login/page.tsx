@@ -12,23 +12,32 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    setIsLoading(true);
+    setError("");
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (res?.error) {
-      setError(res.error);
-    } else {
+      if (res?.error) {
+        setError(res.error);
+        setIsLoading(false);
+        return;
+      }
+
       router.refresh();
-      // Redirect handled by middleware or page logic usually, but here manual check
-      // Ideally router.push('/dashboard/...') based on role, but we let the root page or AuthGuard handle it if we push to /
-      router.push('/'); 
+      router.push('/');
+    } catch (err) {
+      setError((err as Error).message || 'Sign in failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -74,7 +83,24 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 ring-1 ring-red-100">{error}</p>}
-            <Button type="submit" className="w-full" size="lg">Sign In</Button>
+            <Button
+              type="submit"
+              className={`w-full transform transition-all duration-150 ${isLoading ? 'opacity-70 scale-95' : 'hover:-translate-y-0.5'}`}
+              size="lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
+            </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
